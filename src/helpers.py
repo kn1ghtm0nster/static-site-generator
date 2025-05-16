@@ -1,6 +1,7 @@
 """
 module contains helper functions for the project
 """
+import re
 
 from textnode import TextNode, TextType
 
@@ -40,3 +41,35 @@ def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: 
                 new_nodes.extend([node])
 
     return new_nodes
+
+
+def extract_markdown_images(text: str) -> list[tuple[str, str]]:
+    """
+    Function takes a text `string` and extracts all the markdown image links from it.
+
+    It returns a `list` of `tuples` containing the image link and the alt text.
+
+    Args:
+        text (str): The input text string containing markdown image links.
+    Returns:
+        list[tuple[str, str]]: A list of tuples containing the image link and the alt text.
+    """
+    image_pattern = r"!\[([^\[\]]*)\]\(([^\(\)]*)\)"
+    matches = re.findall(image_pattern, text)
+    return [(match[0], match[1]) for match in matches]
+
+
+def extract_markdown_links(text: str) -> list[tuple[str, str]]:
+    """
+    Function takes a text `string` and extracts all the markdown links from it.
+
+    It returns a `list` of `tuples` containing the link and the anchor text.
+
+    Args:
+        text (str): The input text string containing markdown links.
+    Returns:
+        list[tuple[str, str]]: A list of tuples containing the link and the anchor text.
+    """
+    link_pattern = r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)"
+    matches = re.findall(link_pattern, text)
+    return [(match[0], match[1]) for match in matches]
