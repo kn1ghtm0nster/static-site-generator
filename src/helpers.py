@@ -73,3 +73,94 @@ def extract_markdown_links(text: str) -> list[tuple[str, str]]:
     link_pattern = r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)"
     matches = re.findall(link_pattern, text)
     return [(match[0], match[1]) for match in matches]
+
+
+def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
+    """
+    Function takes a list of `TextNode` objects and splits the test of each image node and returns a new list of `TextNode` objects.
+
+    It extracts the image links and alt text from the original nodes and creates new `TextNode` objects for each image. The original text is also preserved in the new nodes.
+
+    Args:
+        old_nodes (list[TextNode]): List of `TextNode` objects to be split.
+    Returns:
+        list[TextNode]: A new list of `TextNode` objects created by splitting the image nodes.
+    """
+
+    new_nodes = []
+
+    for node in old_nodes:
+        match node.text_type:
+            case TextType.TEXT:
+                text = node.text
+                images = extract_markdown_images(text)
+                if not images:
+                    new_nodes.append(node)
+                    continue
+                curr_idx = 0
+                for alt, url in images:
+                    # Build the markdown string for this image
+                    image_md = f"![{alt}]({url})"
+                    # Find where this image markdown appears in the text
+                    idx = text.find(image_md, curr_idx)
+                    if idx == -1:
+                        continue  # Shouldn't happen, but safety
+                    # Text before the image
+                    before = text[curr_idx:idx]
+                    if before:
+                        new_nodes.append(TextNode(before, TextType.TEXT))
+                    # The image node
+                    new_nodes.append(TextNode(alt, TextType.IMAGE, url))
+                    # Move past this image
+                    curr_idx = idx + len(image_md)
+                # Any text after the last image
+                after = text[curr_idx:]
+                if after:
+                    new_nodes.append(TextNode(after, TextType.TEXT))
+            case _:
+                new_nodes.append(node)
+    return new_nodes
+
+
+def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
+    """
+    Function takes a list of `TextNode` objects and splits the test of each link node and returns a new list of `TextNode` objects.
+
+    It extracts the link and anchor text from the original nodes and creates new `TextNode` objects for each link. The original text is also preserved in the new nodes.
+
+    Args:
+        old_nodes (list[TextNode]): List of `TextNode` objects to be split.
+    Returns:
+        list[TextNode]: A new list of `TextNode` objects created by splitting the link nodes.
+    """
+
+    new_nodes = []
+
+    for node in old_nodes:
+
+        match node.text_type:
+            case TextType.TEXT:
+                text = node.text
+                links = extract_markdown_links(text)
+                if not links:
+                    new_nodes.append(node)
+                    continue
+                current_idx = 0
+                for anchor, url in links:
+                    link_md = f"[{anchor}]({url})"
+                    index = text.find(link_md, current_idx)
+                    if index == -1:
+                        continue  # Shouldn't happen, but just in case
+                    # slice the text before the link
+                    before = text[current_idx:index]
+                    if before:
+                        new_nodes.append(TextNode(before, TextType.TEXT))
+                    new_nodes.append(TextNode(anchor, TextType.LINK, url))
+                    current_idx = index + len(link_md)  # move past this link
+                after = text[current_idx:]
+                if after:
+                    new_nodes.append(TextNode(after, TextType.TEXT))
+            case _:
+                new_nodes.append(node)
+
+    return new_nodes
