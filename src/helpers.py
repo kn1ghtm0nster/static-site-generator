@@ -2,8 +2,21 @@
 module contains helper functions for the project
 """
 import re
+from enum import Enum
 
 from textnode import TextNode, TextType
+
+
+class BlockType(Enum):
+    """
+    Enum class for valid markdown types.
+    """
+    PARAGRAPH = "paragraph"
+    HEADING = "heading"
+    CODE = "code"
+    QUOTE = "quote"
+    UNORDERED_LIST = "unordered_list"
+    ORDERED_LIST = "ordered_list"
 
 
 def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: TextType) -> list[TextNode]:
@@ -213,3 +226,49 @@ def markdown_to_blocks(text: str) -> list[str]:
         if cleaned_block:
             cleaned_blocks.append(cleaned_block)
     return cleaned_blocks
+
+
+def block_to_block_type(block: str) -> BlockType:
+    """
+    Function takes a markdown `block` and determines its type based on the markdown syntax.
+
+    It returns a `BlockType` enum value representing the type of the block.
+
+    Args:
+        block (str): The input markdown block to be classified.
+    Returns:
+        BlockType: The `BlockType` enum value representing the type of the block.
+    """
+    heading_pattern = r"^#{1,6} .*"
+    code_pattern = r"^```.*```$"
+    quote_pattern = r"^> .*"
+    unordered_list_pattern = r"^\s*-\s.*"
+    ordered_list_patter = r"^\s*(\d+)\.\s.*"
+
+    # to be used with multiline markdown blocks such as quotes, lists, etc.
+    lines = block.splitlines()
+
+    # Ensure heading starts with # but is between 1 and 6 #s
+    if re.match(heading_pattern, block):
+        return BlockType.HEADING
+    # Ensure codeblocks start with ``` and end with ```
+    elif re.match(code_pattern, block, re.DOTALL):
+        return BlockType.CODE
+    # Ensure quotes start with > and are followed by a space
+    elif all(re.match(quote_pattern, line) for line in lines):
+        return BlockType.QUOTE
+    # Ensure unordered lists start with - followed by a space (* is NOT supported)
+    elif all(re.match(unordered_list_pattern, line) for line in lines):
+        return BlockType.UNORDERED_LIST
+    # Ensure ordered lists start with 1. followed by a space (the dot is VERY important). Each item increments by 1.
+    elif all(re.match(ordered_list_patter, line) for line in lines):
+        expected_number = 1
+        for line in lines:
+            match = re.match(ordered_list_patter, line)
+            if not match or int(match.group(1)) != expected_number:
+                break
+            expected_number += 1
+        return BlockType.ORDERED_LIST
+    # Ensure paragraphs for all other cases
+    else:
+        return BlockType.PARAGRAPH

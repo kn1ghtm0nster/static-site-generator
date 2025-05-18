@@ -1,7 +1,7 @@
 import unittest
 
 from textnode import TextNode, TextType
-from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes, markdown_to_blocks
+from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes, markdown_to_blocks, block_to_block_type, BlockType
 
 
 class TestHelperFunctions(unittest.TestCase):
@@ -518,6 +518,155 @@ class TestHelperFunctions(unittest.TestCase):
                 "Final paragraph."
             ]
         )
+
+    def test_block_to_block_type_headings(self):
+        headings = [
+            "# Heading 1",
+            "## Heading 2",
+            "### Heading 3",
+            "#### Heading 4",
+            "##### Heading 5",
+            "###### Heading 6"
+        ]
+
+        for heading in headings:
+            block_type = block_to_block_type(heading)
+            self.assertEqual(block_type, BlockType.HEADING)
+
+    def test_block_to_block_type_missing_heading_space(self):
+        heading = "#Heading 1"
+        block_type = block_to_block_type(heading)
+        self.assertNotEqual(block_type, BlockType.HEADING)
+
+    def test_block_to_block_type_invalid_heading(self):
+        invalid_heading = "####### Invalid Heading"
+        block_type = block_to_block_type(invalid_heading)
+        self.assertNotEqual(block_type, BlockType.HEADING)
+
+    def test_block_to_block_type_empty_heading(self):
+        empty_heading = "# "
+        block_type = block_to_block_type(empty_heading)
+        self.assertEqual(block_type, BlockType.HEADING)
+
+    def test_block_to_block_type_code_works(self):
+        code_block = "```print('Hello, World!')```"
+        block_type = block_to_block_type(code_block)
+        self.assertEqual(block_type, BlockType.CODE)
+
+    def test_block_to_block_type_code_multiline(self):
+        code_block = """```
+        Python
+        
+        def hello_world():
+            print('Hello, World!')
+        ```"""
+        block_type = block_to_block_type(code_block)
+        self.assertEqual(block_type, BlockType.CODE)
+
+    def test_block_to_block_type_code_missing_trailing_back_ticks(self):
+        invalid_code_block = "```print('Hello, World!')"
+        block_type = block_to_block_type(invalid_code_block)
+        self.assertNotEqual(block_type, BlockType.CODE)
+
+    def test_block_to_block_type_code_missing_leading_back_ticks(self):
+        invalid_code_block = "print('Hello, World!')```"
+        block_type = block_to_block_type(invalid_code_block)
+        self.assertNotEqual(block_type, BlockType.CODE)
+
+    def test_block_to_block_type_empty_code_block(self):
+        empty_code_block = "``` ```"
+        block_type = block_to_block_type(empty_code_block)
+        self.assertEqual(block_type, BlockType.CODE)
+
+    def test_block_to_block_type_quote_works(self):
+        quote_block = "> This is a quote"
+        block_type = block_to_block_type(quote_block)
+        self.assertEqual(block_type, BlockType.QUOTE)
+
+    def test_block_to_block_type_quote_multiline(self):
+        quote_block = "> This is a quote\n> that spans multiple lines"
+        block_type = block_to_block_type(quote_block)
+        self.assertEqual(block_type, BlockType.QUOTE)
+
+    def test_block_to_block_type_quote_missing_greater_than(self):
+        invalid_quote_block = "This is a quote"
+        block_type = block_to_block_type(invalid_quote_block)
+        self.assertNotEqual(block_type, BlockType.QUOTE)
+
+    def test_block_to_block_type_empty_quote(self):
+        empty_quote_block = "> "
+        block_type = block_to_block_type(empty_quote_block)
+        self.assertEqual(block_type, BlockType.QUOTE)
+
+    def test_block_to_block_type_unordered_list_works(self):
+        unordered_list_block = "- Item 1\n- Item 2\n- Item 3"
+        block_type = block_to_block_type(unordered_list_block)
+        self.assertEqual(block_type, BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_unordered_list_multiline(self):
+        unordered_list_block = "- Item 1\n  - Subitem 1\n- Item 2"
+        block_type = block_to_block_type(unordered_list_block)
+        self.assertEqual(block_type, BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_invalid_unordered_list(self):
+        invalid_unordered_list_block = "- Item 1\n* Item 2\n- Item 3"
+        block_type = block_to_block_type(invalid_unordered_list_block)
+        self.assertNotEqual(block_type, BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_unordered_list_missing_dash(self):
+        invalid_unordered_list_block = "Item 1\n- Item 2\n- Item 3"
+        block_type = block_to_block_type(invalid_unordered_list_block)
+        self.assertNotEqual(block_type, BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_empty_unordered_list(self):
+        empty_unordered_list_block = "- "
+        block_type = block_to_block_type(empty_unordered_list_block)
+        self.assertEqual(block_type, BlockType.UNORDERED_LIST)
+
+    def test_blocK_to_block_type_ordered_list_works(self):
+        ordered_list_block = "1. Item 1\n2. Item 2\n3. Item 3"
+        block_type = block_to_block_type(ordered_list_block)
+        self.assertEqual(block_type, BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_multiline(self):
+        ordered_list_block = "1. Item 1\n   1. Subitem 1\n2. Item 2"
+        block_type = block_to_block_type(ordered_list_block)
+        self.assertEqual(block_type, BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_invalid_ordered_list(self):
+        invalid_ordered_list_block = "1. Item 3. \n- Item 2\n5. Item 3"
+        block_type = block_to_block_type(invalid_ordered_list_block)
+        self.assertNotEqual(block_type, BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_missing_number(self):
+        invalid_ordered_list_block = "Item 1\n2. Item 2\n3. Item 3"
+        block_type = block_to_block_type(invalid_ordered_list_block)
+        self.assertNotEqual(block_type, BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_empty_ordered_list(self):
+        empty_ordered_list_block = "1. "
+        block_type = block_to_block_type(empty_ordered_list_block)
+        self.assertEqual(block_type, BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_paragraph_works(self):
+        paragraph_block = "This is a paragraph with some text."
+        block_type = block_to_block_type(paragraph_block)
+        self.assertEqual(block_type, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_paragraph_multiline(self):
+        paragraph_block = "This is a paragraph\nwith some text.\nAnd another line."
+        block_type = block_to_block_type(paragraph_block)
+        self.assertEqual(block_type, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_paragraph_with_special_characters(self):
+        paragraph_block = "This is a paragraph with special characters: !@#$%^&*()"
+        block_type = block_to_block_type(paragraph_block)
+        self.assertEqual(block_type, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_empty_paragraph(self):
+        empty_paragraph_block = "   "
+        block_type = block_to_block_type(empty_paragraph_block)
+        self.assertEqual(block_type, BlockType.PARAGRAPH)
 
 
 if __name__ == "__main__":
