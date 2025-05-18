@@ -1,7 +1,7 @@
 import unittest
 
 from textnode import TextNode, TextType
-from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes
+from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes, markdown_to_blocks
 
 
 class TestHelperFunctions(unittest.TestCase):
@@ -404,6 +404,120 @@ class TestHelperFunctions(unittest.TestCase):
             TextNode("", TextType.TEXT)
         ]
         self.assertEqual(result, expected_result)
+
+    def test_markdown_to_blocks(self):
+        md = """
+        This is **bolded** paragraph
+
+        This is another paragraph with _italic_ text and `code` here
+        This is the same paragraph on a new line
+
+        - This is a list
+        - with items
+        """
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_blocks_leading_and_trailing_whitespace(self):
+        md = "   \nThis is a block with leading whitespace\n   \n\n   This is a second block with trailing whitespace   "
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is a block with leading whitespace",
+                "This is a second block with trailing whitespace"
+            ]
+        )
+
+    def test_markdown_to_blocks_multiple_blank_lines(self):
+        md = "Block one\n\n\n\nBlock two\n\n\nBlock three"
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "Block one",
+                "Block two",
+                "Block three"
+            ]
+        )
+
+    def test_markdown_to_blocks_block_with_only_whitespace_lines(self):
+        md = "Block one\n   \n   \nBlock two"
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "Block one",
+                "Block two"
+            ]
+        )
+
+    def test_markdown_to_blocks_list_items_with_indentation(self):
+        md = """
+        - Item one
+            - Item two
+        - Item three
+
+        Paragraph after list
+        """
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "- Item one\n- Item two\n- Item three",
+                "Paragraph after list"
+            ]
+        )
+
+    def test_markdown_to_blocks_empty_string(self):
+        md = ""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(blocks, [])
+
+    def test_markdown_to_blocks_only_whitespace(self):
+        md = "   \n   \n"
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(blocks, [])
+
+    def test_markdown_to_blocks_single_block_multiline(self):
+        md = "Line one\nLine two\nLine three"
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            ["Line one\nLine two\nLine three"]
+        )
+
+    def test_markdown_to_blocks_blocks_with_mixed_content(self):
+        md = """
+        # Header
+
+        Some text with **bold** and _italic_.
+
+        - List item 1
+        - List item 2
+
+        > Blockquote
+
+        Final paragraph.
+        """
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "# Header",
+                "Some text with **bold** and _italic_.",
+                "- List item 1\n- List item 2",
+                "> Blockquote",
+                "Final paragraph."
+            ]
+        )
 
 
 if __name__ == "__main__":

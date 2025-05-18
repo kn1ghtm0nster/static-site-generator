@@ -188,3 +188,28 @@ def text_to_text_nodes(text: str) -> list[TextNode]:
     nodes = split_nodes_link(nodes)
 
     return nodes
+
+
+def markdown_to_blocks(text: str) -> list[str]:
+    """
+    Function takes a markdown `string` and splits it into blocks based on the markdown syntax.
+
+    It returns a `list` of blocks, where each block is a string containing the text inside it.
+
+    Args:
+        text (str): The input markdown string to be split into blocks.
+    Returns:
+        list[str]: A list of blocks, where each block is a string containing the text inside it.
+    """
+    # Split on any line that is empty or contains only whitespace
+    blocks = re.split(r'(?:\r?\n\s*\n)+', text)
+    cleaned_blocks = []
+    for block in blocks:
+        # Strip each line in the block, then join back with \n
+        lines = block.splitlines()
+        stripped_lines = [line.strip() for line in lines]
+        # remove leading/trailing whitespace
+        cleaned_block = "\n".join(stripped_lines).strip()
+        if cleaned_block:
+            cleaned_blocks.append(cleaned_block)
+    return cleaned_blocks
