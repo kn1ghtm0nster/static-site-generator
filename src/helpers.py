@@ -164,3 +164,27 @@ def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
                 new_nodes.append(node)
 
     return new_nodes
+
+
+def text_to_text_nodes(text: str) -> list[TextNode]:
+    """
+    Function takes a text `string` and converts it into a list of `TextNode` objects.
+
+    It splits the text into segments based on the delimiters and creates new `TextNode` objects for each segment.
+
+    Args:
+        text (str): The input text string to be converted.
+    Returns:
+        list[TextNode]: A list of `TextNode` objects created from the input text.
+    """
+    starting_node = TextNode(text, TextType.TEXT)
+    nodes = [starting_node]
+
+    # split nodes for specific delimiters
+    nodes = split_nodes_delimiter(nodes, "`",  TextType.CODE)
+    nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
+    nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
+    nodes = split_nodes_image(nodes)
+    nodes = split_nodes_link(nodes)
+
+    return nodes
