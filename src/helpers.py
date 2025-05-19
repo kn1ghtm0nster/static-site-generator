@@ -5,6 +5,9 @@ import re
 from enum import Enum
 
 from textnode import TextNode, TextType
+from parentnode import ParentNode
+from htmlnode import HTMLNode
+from leafnode import LeafNode
 
 
 class BlockType(Enum):
@@ -272,3 +275,119 @@ def block_to_block_type(block: str) -> BlockType:
     # Ensure paragraphs for all other cases
     else:
         return BlockType.PARAGRAPH
+
+
+def text_node_to_html_node(node: TextNode) -> LeafNode:
+    """
+    Function converts a `TextNode` object representing inline markdown
+    into the corresponding HTML node.
+
+    Args:
+        node (TextNode): The `TextNode` object to be converted.
+    Returns:
+        LeafNode: The corresponding `LeafNode` object.
+
+    Raises:
+        Exception: If the text type of the node is unknown.
+    """
+    match node.text_type:
+        case TextType.TEXT:
+            return LeafNode(None, node.text)
+        case TextType.CODE:
+            return LeafNode("code", node.text)
+        case TextType.BOLD:
+            return LeafNode("b", node.text)
+        case TextType.ITALIC:
+            return LeafNode("i", node.text)
+        case TextType.IMAGE:
+            return LeafNode("img", node.text, {"src": node.url})
+        case TextType.LINK:
+            return LeafNode("a", node.text, {"href": node.url})
+        case _:
+            raise Exception(f"Unknown text type: {node.text_type}")
+
+
+def text_to_children(text: str) -> list[HTMLNode]:
+    """
+    Function converts a string of markdown text into a list of `HTMLNode` objects.
+    representing inline elements such as links, images, and text.
+
+    Args:
+        text (str): The input markdown text to be converted.
+    Returns:
+        list[HTMLNode]: A list of `HTMLNode` objects representing inline elements.
+    """
+    text_nodes = text_to_text_nodes(text)
+    html_nodes = [
+        text_node_to_html_node(node)
+        for node in text_nodes
+        if not (node.text_type == TextType.TEXT and node.text == "")
+    ]
+    return html_nodes
+
+
+def markdown_to_html_node(markdown: str) -> ParentNode:
+    """
+    Converts a markdown document into a single `ParentNode` object 
+    representing the HTML structure.
+
+    Splits the markdown into blocks, determines the type of each block,
+    and creates the corresponding HTML nodes.
+
+    All block nodes are nested under a single `<div>` `ParentNode`.
+
+    Args:
+        markdown (str): The input markdown string to be converted.
+    Returns:
+        ParentNode: A `ParentNode` object representing the HTML structure of the markdown.
+    """
+    markdown_blocks = markdown_to_blocks(markdown)
+
+    children = []
+
+    for block in markdown_blocks:
+        block_type = block_to_block_type(block)
+
+        match block_type:
+            case BlockType.PARAGRAPH:
+                children.append(ParentNode(
+                    "p", text_to_children(block.replace("\n", " "))))
+            case BlockType.CODE:
+                # remove the starting and ending ``` from the block
+                code_content = block.strip().removeprefix(
+                    "```").removesuffix("```").strip() + "\n"
+                code_node = TextNode(code_content, TextType.CODE)
+                code_html = text_node_to_html_node(code_node)
+                children.append(ParentNode("pre", [code_html]))
+            case BlockType.HEADING:
+                # group the markdown #s and the text separately
+                match_heading = re.match(r"^(#{1,6}) (.*)", block)
+                if match_heading:
+                    # count the number of #s at the start of the block
+                    tag = f"h{len(match_heading.group(1))}"
+                    heading_text = match_heading.group(2)
+                    children.append(ParentNode(
+                        tag, text_to_children(heading_text)))
+            case BlockType.QUOTE:
+                # remove the starting > AND space from the block
+                quote_text = [line[2:] if line.startswith(
+                    "> ") else line[1:] for line in block.splitlines()]
+                quote_text = "\n".join(quote_text)
+                quote_children = text_to_children(quote_text)
+                children.append(ParentNode("blockquote", quote_children))
+            case BlockType.UNORDERED_LIST:
+                items = []
+                for line in block.splitlines():
+                    # remove the starting - AND space from the line
+                    item_text = line[2:] if line.startswith("- ") else line
+                    items.append(ParentNode("li", text_to_children(item_text)))
+                children.append(ParentNode("ul", items))
+            case BlockType.ORDERED_LIST:
+                items = []
+                for line in block.splitlines():
+                    # remove the starting number AND dot AND space from the line
+                    item_text = re.sub(r"^\s*\d+\.\s+", "", line)
+                    items.append(ParentNode("li", text_to_children(item_text)))
+                children.append(ParentNode("ol", items))
+
+    return ParentNode("div", children)

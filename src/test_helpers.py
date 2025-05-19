@@ -1,7 +1,9 @@
 import unittest
 
+from htmlnode import HTMLNode
 from textnode import TextNode, TextType
-from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes, markdown_to_blocks, block_to_block_type, BlockType
+from leafnode import LeafNode
+from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes, markdown_to_blocks, block_to_block_type, text_node_to_html_node, text_to_children, markdown_to_html_node, BlockType
 
 
 class TestHelperFunctions(unittest.TestCase):
@@ -667,6 +669,195 @@ class TestHelperFunctions(unittest.TestCase):
         empty_paragraph_block = "   "
         block_type = block_to_block_type(empty_paragraph_block)
         self.assertEqual(block_type, BlockType.PARAGRAPH)
+
+    def test_markdown_to_html_node_paragraphs(self):
+        md = """
+    This is **bolded** paragraph
+    text in a p
+    tag here
+
+    This is another paragraph with _italic_ text and `code` here
+
+    """
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_markdown_to_html_node_codeblock(self):
+        md = """
+    ```
+    This is text that _should_ remain
+    the **same** even with inline stuff
+    ```
+    """
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
+    def test_markdown_to_html_node_heading(self):
+        md = """
+        # This is a heading
+        """
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        expected_html = "<div><h1>This is a heading</h1></div>"
+        self.assertEqual(html, expected_html)
+
+    def test_markdown_to_html_node_quote(self):
+        md = """
+        > This is a simple quote dawg
+        """
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        expected_html = "<div><blockquote>This is a simple quote dawg</blockquote></div>"
+        self.assertEqual(html, expected_html)
+
+    def test_markdown_to_html_node_unordered_list(self):
+        md = """
+        - This is a list
+        - with many
+        - items
+        """
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        expected_html = "<div><ul><li>This is a list</li><li>with many</li><li>items</li></ul></div>"
+        self.assertEqual(html, expected_html)
+
+    def test_markdown_to_html_node_ordered_list(self):
+        md = """
+        1. This is an ordered
+        2. list with
+        3. many items
+        """
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        expected_html = "<div><ol><li>This is an ordered</li><li>list with</li><li>many items</li></ol></div>"
+        self.assertEqual(html, expected_html)
+
+    def test_markdown_to_html_node_empty_markdown(self):
+        md = ""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        expected_html = "<div></div>"
+        self.assertEqual(html, expected_html)
+
+    def test_text_node_to_html_node_works(self):
+        node = TextNode("This is a text node", TextType.TEXT)
+        result = text_node_to_html_node(node)
+        expected_result = HTMLNode(
+            tag=None, value="This is a text node", children=None, props=None)
+        self.assertEqual(result, expected_result)
+
+    def test_text_node_to_html_node_raises_exception(self):
+        node = TextNode("This node is invalid", "hehexd")
+        with self.assertRaises(Exception):
+            text_node_to_html_node(node)
+
+    def test_text_node_to_html_node_code(self):
+        node = TextNode("This is a code block", TextType.CODE)
+        result = text_node_to_html_node(node)
+        expected_result = HTMLNode(
+            tag="code", value="This is a code block", children=None, props=None)
+        self.assertEqual(result, expected_result)
+
+    def test_text_node_to_html_node_bold(self):
+        node = TextNode("This is a BOLD block", TextType.BOLD)
+        result = text_node_to_html_node(node)
+        expected_result = HTMLNode(
+            tag="b", value="This is a BOLD block", children=None, props=None)
+        self.assertEqual(result, expected_result)
+
+    def test_text_node_to_html_node_italic(self):
+        node = TextNode("This is an italic block", TextType.ITALIC)
+        result = text_node_to_html_node(node)
+        expected_result = HTMLNode(
+            tag="i", value="This is an italic block", children=None, props=None)
+        self.assertEqual(result, expected_result)
+
+    def test_text_node_to_html_node_image(self):
+        node = TextNode("This is an image", TextType.IMAGE,
+                        "https://i.imgur.com/aKaOqIh.gif")
+        result = text_node_to_html_node(node)
+        expected_result = HTMLNode(
+            tag="img", value="This is an image", children=None, props={"src": "https://i.imgur.com/aKaOqIh.gif"})
+        self.assertEqual(result, expected_result)
+
+    def test_text_node_to_html_node_link(self):
+        node = TextNode("This is a link", TextType.LINK,
+                        "https://www.boot.dev")
+        result = text_node_to_html_node(node)
+        expected_result = HTMLNode(
+            tag="a", value="This is a link", children=None, props={"href": "https://www.boot.dev"})
+        self.assertEqual(result, expected_result)
+
+    def test_text_to_children_plain_text(self):
+        nodes = text_to_children("Just some text.")
+        self.assertEqual(nodes, [LeafNode(None, "Just some text.")])
+
+    def test_text_to_children_bold(self):
+        nodes = text_to_children("This is **bold** text.")
+        self.assertEqual(
+            nodes,
+            [LeafNode(None, "This is "), LeafNode(
+                "b", "bold"), LeafNode(None, " text.")]
+        )
+
+    def test_text_to_children_italic(self):
+        nodes = text_to_children("This is _italic_ text.")
+        self.assertEqual(
+            nodes,
+            [LeafNode(None, "This is "), LeafNode(
+                "i", "italic"), LeafNode(None, " text.")]
+        )
+
+    def test_text_to_children_code(self):
+        nodes = text_to_children("Here is `code`.")
+        self.assertEqual(
+            nodes,
+            [LeafNode(None, "Here is "), LeafNode(
+                "code", "code"), LeafNode(None, ".")]
+        )
+
+    def test_text_to_children_link(self):
+        nodes = text_to_children("A [link](https://example.com).")
+        self.assertEqual(
+            nodes,
+            [LeafNode(None, "A "), LeafNode("a", "link", {
+                "href": "https://example.com"}), LeafNode(None, ".")]
+        )
+
+    def test_text_to_children_image(self):
+        nodes = text_to_children("An image: ![alt](img.png)")
+        self.assertEqual(
+            nodes,
+            [LeafNode(None, "An image: "), LeafNode(
+                "img", "alt", {"src": "img.png"})]
+        )
+
+    def test_text_to_children_mixed(self):
+        nodes = text_to_children(
+            "**Bold** and _italic_ with `code` and a [link](url).")
+        self.assertEqual(
+            nodes,
+            [
+                LeafNode("b", "Bold"),
+                LeafNode(None, " and "),
+                LeafNode("i", "italic"),
+                LeafNode(None, " with "),
+                LeafNode("code", "code"),
+                LeafNode(None, " and a "),
+                LeafNode("a", "link", {"href": "url"}),
+                LeafNode(None, "."),
+            ]
+        )
 
 
 if __name__ == "__main__":
