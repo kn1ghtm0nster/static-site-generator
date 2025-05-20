@@ -430,3 +430,31 @@ def copy_static(src: str, dest: str) -> None:
                 print(f"Copied file: {src_path} to {dest_path}")
 
     _copy_recursive(src, dest)
+
+
+def extract_title(markdown: str) -> str:
+    """
+    Extracts the first h1 header from the markdown string (line starting
+    with '# ').
+
+    Returns the header text with the leading '# ' removed along with any
+    whitespace.
+    Raises an exception if no header is found.
+
+    Args:
+        markdown (str): The input markdown string to extract the title from.
+    Returns:
+        str: The extracted title text without the leading '# '.
+    Raises:
+        Exception: If no header is found in the markdown string.
+    """
+
+    # Split the markdown into lines
+    lines = markdown.splitlines()
+
+    # Find the first line that starts with the main heading
+    for line in lines:
+        if line.strip().startswith("# "):
+            # Remove the leading "# " and strip whitespace
+            return line.strip()[2:].strip()
+    raise Exception("No header found in the markdown file.")

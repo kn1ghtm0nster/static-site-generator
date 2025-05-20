@@ -3,7 +3,7 @@ import unittest
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
 from leafnode import LeafNode
-from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes, markdown_to_blocks, block_to_block_type, text_node_to_html_node, text_to_children, markdown_to_html_node, BlockType
+from helpers import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_text_nodes, markdown_to_blocks, block_to_block_type, text_node_to_html_node, text_to_children, markdown_to_html_node, extract_title, BlockType
 
 
 class TestHelperFunctions(unittest.TestCase):
@@ -858,6 +858,34 @@ class TestHelperFunctions(unittest.TestCase):
                 LeafNode(None, "."),
             ]
         )
+
+    def test_extract_title_works(self):
+        md = "# This is a title header"
+        result = extract_title(md)
+        expected_result = "This is a title header"
+
+        self.assertEqual(result, expected_result)
+
+    def test_extract_title_multiple_headers(self):
+        md = """
+        # This is a title header
+        
+        # This is a second header
+        """
+        result = extract_title(md)
+        expected_result = "This is a title header"
+
+        self.assertEqual(result, expected_result)
+
+    def test_extract_title_no_header_raises_exception(self):
+        md = "This is a paragraph without a header"
+        with self.assertRaises(Exception):
+            extract_title(md)
+
+    def test_extract_title_empty_string_raises_exception(self):
+        md = ""
+        with self.assertRaises(Exception):
+            extract_title(md)
 
 
 if __name__ == "__main__":
