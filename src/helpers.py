@@ -246,7 +246,7 @@ def block_to_block_type(block: str) -> BlockType:
     """
     heading_pattern = r"^#{1,6} .*"
     code_pattern = r"^```.*```$"
-    quote_pattern = r"^> .*"
+    quote_pattern = r"^>( .*)?$"
     unordered_list_pattern = r"^\s*-\s.*"
     ordered_list_patter = r"^\s*(\d+)\.\s.*"
 
@@ -372,9 +372,9 @@ def markdown_to_html_node(markdown: str) -> ParentNode:
                         tag, text_to_children(heading_text)))
             case BlockType.QUOTE:
                 # remove the starting > AND space from the block
-                quote_text = [line[2:] if line.startswith(
-                    "> ") else line[1:] for line in block.splitlines()]
-                quote_text = "\n".join(quote_text)
+                quote_lines = [re.sub(r"^>\s?", "", line)
+                               for line in block.splitlines()]
+                quote_text = "\n".join(quote_lines)
                 quote_children = text_to_children(quote_text)
                 children.append(ParentNode("blockquote", quote_children))
             case BlockType.UNORDERED_LIST:
@@ -458,3 +458,49 @@ def extract_title(markdown: str) -> str:
             # Remove the leading "# " and strip whitespace
             return line.strip()[2:].strip()
     raise Exception("No header found in the markdown file.")
+
+
+def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
+    """
+    Generates a full HTML page from a given markdown file and a template.
+
+    Replaces the `{{ title }}` and `{{ content}}` placeholders in the template
+    with the extracted title and generated HTML.
+
+    Writes the result to the `dest_path`, creating directories as needed.
+
+    Args:
+        from_path (str): The path to the markdown file to be converted.
+        template_path (str): The path to the HTML template file.
+        dest_path (str): The path where the generated HTML file will be saved.
+    Returns:
+        None
+    """
+    print(
+        f"Generating page from {from_path} to {dest_path} using template {template_path}")
+
+    # Read the markdown file
+    with open(from_path, "r", encoding="utf-8") as f:
+        markdown = f.read()
+
+    # Read the template file
+    with open(template_path, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    # Convert the markdown variale to HTML
+    html_node = markdown_to_html_node(markdown)
+    html_string = html_node.to_html()
+
+    # Extract the title from the markdown
+    page_title = extract_title(markdown)
+
+    # Replace the placeholders in the template with the HTML string and title
+    final_html = template.replace("{{ Title }}", page_title).replace(
+        "{{ Content }}", html_string)
+
+    # Ensure the destination directory exists
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+
+    # Write the final HTML to the destination file
+    with open(dest_path, "w", encoding="utf-8") as f:
+        f.write(final_html)
