@@ -2,6 +2,8 @@
 module contains helper functions for the project
 """
 import re
+import os
+import shutil
 from enum import Enum
 
 from textnode import TextNode, TextType
@@ -391,3 +393,40 @@ def markdown_to_html_node(markdown: str) -> ParentNode:
                 children.append(ParentNode("ol", items))
 
     return ParentNode("div", children)
+
+
+def copy_static(src: str, dest: str) -> None:
+    """
+    Recursively copies the contents of the source directory to the destination directory.
+
+    Deletes all contents of the destination directory before copying.
+
+    Logs each file copied.
+
+    Args:
+        src (str): The source directory to copy from.
+        dest (str): The destination directory to copy to.
+    Returns:
+        None
+    """
+
+    # check if the destination directory exists and delete if so
+    if os.path.exists(dest):
+        shutil.rmtree(dest)
+        print(f"Deleted existing directory: {dest}")
+
+    # Recursively copy src to dest
+    def _copy_recursive(current_src: str, current_dest: str) -> None:
+        if not os.path.exists(current_dest):
+            os.mkdir(current_dest)
+            print(f"Created directory: {current_dest}")
+        for entry in os.listdir(current_src):
+            src_path = os.path.join(current_src, entry)
+            dest_path = os.path.join(current_dest, entry)
+            if os.path.isdir(src_path):
+                _copy_recursive(src_path, dest_path)
+            else:
+                shutil.copy(src_path, dest_path)
+                print(f"Copied file: {src_path} to {dest_path}")
+
+    _copy_recursive(src, dest)

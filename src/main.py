@@ -1,10 +1,9 @@
 from textnode import TextNode
+from helpers import copy_static
 
 
 def main():
-    dummy_node = TextNode("This is some anchor text",
-                          "link", "https://www.google.com")
-    print(dummy_node)
+    copy_static("static", "public")
 
 
 if __name__ == "__main__":
