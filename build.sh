@@ -1,0 +1,1 @@
+python3 main.py "/static-site-generator/"
