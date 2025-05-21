@@ -1,12 +1,15 @@
 from textnode import TextNode
-from helpers import copy_static, generate_page
+from helpers import copy_static, generate_pages_recursive
 
 
 def main():
     copy_static("static", "public")
 
-    generate_page(from_path="content/index.md",
-                  template_path="template.html", dest_path="public/index.html")
+    generate_pages_recursive(
+        "content",
+        "template.html",
+        "public"
+    )
 
 
 if __name__ == "__main__":

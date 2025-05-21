@@ -504,3 +504,25 @@ def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
     # Write the final HTML to the destination file
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(final_html)
+
+
+def generate_pages_recursive(dir_path: str, template_path: str, dest_dir_path: str) -> None:
+    """
+    TODO: add docstring
+    """
+    # Ensure the destination directory exists
+    os.makedirs(dest_dir_path, exist_ok=True)
+
+    # Iterate through all files and directories in the source directory
+    for entry in os.listdir(dir_path):
+        entry_path = os.path.join(dir_path, entry)
+        dest_entry_path = os.path.join(dest_dir_path, entry)
+
+        if os.path.isdir(entry_path):
+            # Recursively process subdirectories
+            generate_pages_recursive(
+                entry_path, template_path, dest_entry_path)
+        elif entry_path.endswith(".md"):
+            # Change .md to .html for the output file
+            dest_html_path = os.path.splitext(dest_entry_path)[0] + ".html"
+            generate_page(entry_path, template_path, dest_html_path)
