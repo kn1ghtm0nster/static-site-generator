@@ -460,7 +460,7 @@ def extract_title(markdown: str) -> str:
     raise Exception("No header found in the markdown file.")
 
 
-def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
+def generate_page(from_path: str, template_path: str, dest_path: str, basepath: str) -> None:
     """
     Generates a full HTML page from a given markdown file and a template.
 
@@ -497,6 +497,9 @@ def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
     # Replace the placeholders in the template with the HTML string and title
     final_html = template.replace("{{ Title }}", page_title).replace(
         "{{ Content }}", html_string)
+    # Replace the basepath in the HTML string
+    final_html = final_html.replace(
+        'href="/', f'href="{basepath}').replace('src="/', f'src="{basepath}')
 
     # Ensure the destination directory exists
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
@@ -506,10 +509,22 @@ def generate_page(from_path: str, template_path: str, dest_path: str) -> None:
         f.write(final_html)
 
 
-def generate_pages_recursive(dir_path: str, template_path: str, dest_dir_path: str) -> None:
+def generate_pages_recursive(dir_path: str, template_path: str, dest_dir_path: str, basepath: str) -> None:
     """
-    TODO: add docstring
+    Recursively generates HTML pages from markdown files in dir_path,
+    using template_path, and writes them to dest_dir_path, preserving structure.
+
+    Replaces href/src basepaths using the provided basepath.
+
+    Args:
+        dir_path (str): The path to the directory containing markdown files.
+        template_path (str): The path to the HTML template file.
+        dest_dir_path (str): The path where the generated HTML files will be saved.
+        basepath (str): The basepath to replace in href/src attributes.
+    Returns:
+        None
     """
+
     # Ensure the destination directory exists
     os.makedirs(dest_dir_path, exist_ok=True)
 
@@ -521,8 +536,8 @@ def generate_pages_recursive(dir_path: str, template_path: str, dest_dir_path: s
         if os.path.isdir(entry_path):
             # Recursively process subdirectories
             generate_pages_recursive(
-                entry_path, template_path, dest_entry_path)
+                entry_path, template_path, dest_entry_path, basepath)
         elif entry_path.endswith(".md"):
             # Change .md to .html for the output file
             dest_html_path = os.path.splitext(dest_entry_path)[0] + ".html"
-            generate_page(entry_path, template_path, dest_html_path)
+            generate_page(entry_path, template_path, dest_html_path, basepath)
